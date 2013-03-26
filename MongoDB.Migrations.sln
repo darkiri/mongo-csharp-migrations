@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.Migrations", ".\MongoDB.Migrations\MongoDB.Migrations.csproj", "{9AE2A5B3-A7C0-462D-97B8-D8F28D370BA3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.Migrations.Tests", ".\MongoDB.Migrations.Tests\MongoDB.Migrations.Tests.csproj", "{36EFF6DC-EE29-44A7-AB3E-D7CDA59A70A8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9AE2A5B3-A7C0-462D-97B8-D8F28D370BA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AE2A5B3-A7C0-462D-97B8-D8F28D370BA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AE2A5B3-A7C0-462D-97B8-D8F28D370BA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AE2A5B3-A7C0-462D-97B8-D8F28D370BA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36EFF6DC-EE29-44A7-AB3E-D7CDA59A70A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36EFF6DC-EE29-44A7-AB3E-D7CDA59A70A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36EFF6DC-EE29-44A7-AB3E-D7CDA59A70A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36EFF6DC-EE29-44A7-AB3E-D7CDA59A70A8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

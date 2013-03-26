@@ -1,0 +1,12 @@
+bin
+obj
+*.user
+*.suo
+*.vsp
+*.csproj.VisualState.xml
+*.vbproj.VisualState.xml
+*.cache
+TestResults
+_ReSharper.*
+*.ncrunch*
+packages
