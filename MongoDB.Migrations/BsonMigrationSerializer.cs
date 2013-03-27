@@ -53,27 +53,32 @@ namespace MongoDB.Migrations
         {
             if (elementName == VERSION_ELEMENT_NAME)
             {
-                var extraElements = (IDictionary<string, object>) extraElementsMemberMap.Getter(obj);
-                if (extraElements == null)
-                {
-                    // shameless ripped from the basis class (extract method there?)
-                    if (extraElementsMemberMap.MemberType == typeof (IDictionary<string, object>))
-                    {
-                        extraElements = new Dictionary<string, object>();
-                    }
-                    else
-                    {
-                        extraElements = (IDictionary<string, object>) Activator.CreateInstance(extraElementsMemberMap.MemberType);
-                    }
-                    extraElementsMemberMap.Setter(obj, extraElements);
-                }
-
+                var extraElements = EnsureExtraElements(obj, extraElementsMemberMap);
                 extraElements[VERSION_ELEMENT_NAME] = _versionSerializer.Deserialize(bsonReader, typeof (Version), null);
             }
             else
             {
                 base.DeserializeExtraElement(bsonReader, obj, elementName, extraElementsMemberMap);
             }
+        }
+
+        private static IDictionary<string, object> EnsureExtraElements(object obj, BsonMemberMap extraElementsMemberMap)
+        {
+            // shameless ripped from the base class (make this method protected non-static and pull up?)
+            var extraElements = (IDictionary<string, object>) extraElementsMemberMap.Getter(obj);
+            if (extraElements == null)
+            {
+                if (extraElementsMemberMap.MemberType == typeof (IDictionary<string, object>))
+                {
+                    extraElements = new Dictionary<string, object>();
+                }
+                else
+                {
+                    extraElements = (IDictionary<string, object>) Activator.CreateInstance(extraElementsMemberMap.MemberType);
+                }
+                extraElementsMemberMap.Setter(obj, extraElements);
+            }
+            return extraElements;
         }
 
         protected override void OnDeserialized(object obj)
@@ -90,14 +95,18 @@ namespace MongoDB.Migrations
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)
         {
             // TODO error handling
-            foreach (var migration in _migrations)
+            foreach (var migration in _migrations.Where(m => m.To > objectVersion))
             {
-                if (migration.To > objectVersion)
-                {
-                    var upgrade = migration.GetType() .GetMethod("Upgrade", new[] {obj.GetType(), typeof (Dictionary<string, object>)});
-                    upgrade.Invoke(migration, new[] {obj, extraElements});
-                }
+                InvokeUpgrade(migration, obj, extraElements);
             }
+        }
+
+        private static void InvokeUpgrade(IMigration migration, object obj, IDictionary<string, object> extraElements)
+        {
+            var upgrade = migration
+                .GetType()
+                .GetMethod("Upgrade", new[] {obj.GetType(), typeof (IDictionary<string, object>)});
+            upgrade.Invoke(migration, new[] {obj, extraElements});
         }
     }
 }

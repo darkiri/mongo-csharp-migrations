@@ -34,6 +34,13 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
+        public void ExtraElementsShouldNotContainsVersionInformation() 
+        {
+            var obj = Deserialize<WithSingleUpgrade>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.0.0");
+            Assert.False(obj.ExtraElements.ContainsKey("_v"));
+        }
+
+        [Test]
         public void UpgradesShouldBeApplied()
         {
             var obj = Deserialize<WithSingleUpgrade>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.1.0");
@@ -101,7 +108,7 @@ namespace MongoDB.Migrations.Tests
                 get { return new Version(1, 3, 1); }
             }
 
-            public void Upgrade(SampleClass obj, Dictionary<string, object> extraElements) {}
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) {}
         }
 
         public class UpgradeTo_1_1_2 : IMigration<SampleClass>
@@ -111,7 +118,7 @@ namespace MongoDB.Migrations.Tests
                 get { return new Version(1, 1, 2); }
             }
 
-            public void Upgrade(SampleClass obj, Dictionary<string, object> extraElements) {}
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) {}
         }
 
         public class UpgradeTo_1_1_1 : IMigration<SampleClass>, IMigration<WithSingleUpgrade>
@@ -122,12 +129,12 @@ namespace MongoDB.Migrations.Tests
                 get { return new Version(1, 1, 1); }
             }
 
-            public void Upgrade(WithSingleUpgrade obj, Dictionary<string, object> extraElements)
+            public void Upgrade(WithSingleUpgrade obj, IDictionary<string, object> extraElements)
             {
                 obj.Bla = -1;
             }
 
-            public void Upgrade(SampleClass obj, Dictionary<string, object> extraElements) {}
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) {}
         }
     }
 }
