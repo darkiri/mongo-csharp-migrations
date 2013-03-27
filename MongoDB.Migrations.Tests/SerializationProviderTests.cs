@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using NUnit.Framework;
 
@@ -28,9 +29,15 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void TypesWithoutExtraMethodsAreNotMigratable()
+        public void TypesWithoutExtraElementsAreNotMigratable()
         {
             Assert.IsNull(GetSerializer(typeof (NotMigratableType)));
+        }
+
+        [Test]
+        public void TypesWithExtraElementsAsBsonDocumentAreNotMigrated() 
+        {
+            Assert.IsNull(GetSerializer(typeof (TypeWithExtraElementsBsonDocument)));
         }
 
         [Test]
@@ -50,6 +57,11 @@ namespace MongoDB.Migrations.Tests
         private class TypeWithExtraElements
         {
             public Dictionary<string, object> ExtraElements;
+        }
+
+        private class TypeWithExtraElementsBsonDocument
+        {
+            public BsonDocument ExtraElements;
         }
     }
 }

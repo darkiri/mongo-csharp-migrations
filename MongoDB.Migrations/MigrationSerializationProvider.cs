@@ -1,5 +1,5 @@
 using System;
-using System.Reflection;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 
 namespace MongoDB.Migrations
@@ -17,7 +17,8 @@ namespace MongoDB.Migrations
             else
             {
                 var classMap = BsonClassMap.LookupClassMap(type);
-                if (classMap.ExtraElementsMemberMap == null)
+                if (classMap.ExtraElementsMemberMap == null || 
+                    classMap.ExtraElementsMemberMap.MemberType == typeof(BsonDocument))
                 {
                     // the expensive ClassMap was not for nothing created
                     // it will be shortly reused by the normal ClassMap Serializer
