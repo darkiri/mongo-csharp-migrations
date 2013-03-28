@@ -34,7 +34,7 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void ExtraElementsShouldNotContainsVersionInformation() 
+        public void ExtraElementsShouldNotContainsVersionInformation()
         {
             var obj = Deserialize<WithSingleUpgrade>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.0.0");
             Assert.False(obj.ExtraElements.ContainsKey("_v"));
@@ -48,21 +48,35 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void ExceptionsInUpgradesShouldBeHandled() 
+        public void CurrentApplicationVersionShouldRestrictUpgrades()
+        {
+            var obj = Deserialize<SampleClass>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.1.0");
+            Assert.That(obj.Bla, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void ExceptionsInUpgradesShouldBeHandled()
         {
             try
             {
-                Deserialize<SampleClass>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.2.1.0");
-                Assert.Fail("Expected " + typeof(MigrationException));
+                Deserialize<SampleClass>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.3.1.0");
+                Assert.Fail("Expected " + typeof (MigrationException));
             }
             catch (MigrationException e)
             {
-                Assert.That(e.AbortedVersion, Is.EqualTo(new Version(1, 1, 2)));
+                Assert.That(e.AbortedVersion, Is.EqualTo(new Version(1, 3, 1)));
                 Assert.That(e.MigratedType, Is.EqualTo(typeof (SampleClass)));
             }
-            catch (Exception another) {
-                Assert.Fail("Expected " + typeof(MigrationException) + " but thrown " + another.GetType());
+            catch (Exception another)
+            {
+                Assert.Fail("Expected " + typeof (MigrationException) + " but thrown " + another.GetType());
             }
+        }
+
+        [Test, ExpectedException(typeof (MigrationException))]
+        public void SeveralMigrationsForSameVersionShouldAbortThePipeline()
+        {
+            Deserialize<SampleClass1>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "2.2.1.0");
         }
 
         private static string Serialize<T>(T obj, string version)
@@ -107,6 +121,13 @@ namespace MongoDB.Migrations.Tests
             public Dictionary<string, object> ExtraElements;
         }
 
+        [Migration(typeof (UpgradeTo_2_1_1))]
+        [Migration(typeof (AnotherUpgradeTo_2_1_1))]
+        public class SampleClass1
+        {
+            public Dictionary<string, object> ExtraElements;
+        }
+
         [Migration(typeof (UpgradeTo_1_1_1))]
         public class WithSingleUpgrade
         {
@@ -128,7 +149,7 @@ namespace MongoDB.Migrations.Tests
 
             public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements)
             {
-                obj.Bla = -2;
+                throw new Exception();
             }
         }
 
@@ -139,15 +160,14 @@ namespace MongoDB.Migrations.Tests
                 get { return new Version(1, 1, 2); }
             }
 
-            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) 
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements)
             {
-                throw new Exception();
+                obj.Bla = -2;
             }
         }
 
         public class UpgradeTo_1_1_1 : IMigration<SampleClass>, IMigration<WithSingleUpgrade>
         {
-
             public Version To
             {
                 get { return new Version(1, 1, 1); }
@@ -158,7 +178,30 @@ namespace MongoDB.Migrations.Tests
                 obj.Bla = -1;
             }
 
-            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) {}
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements)
+            {
+                obj.Bla = -1;
+            }
+        }
+
+        public class UpgradeTo_2_1_1 : IMigration<SampleClass1>
+        {
+            public Version To
+            {
+                get { return new Version(2, 1, 1); }
+            }
+
+            public void Upgrade(SampleClass1 obj, IDictionary<string, object> extraElements) {}
+        }
+
+        public class AnotherUpgradeTo_2_1_1 : IMigration<SampleClass1>
+        {
+            public Version To
+            {
+                get { return new Version(2, 1, 1); }
+            }
+
+            public void Upgrade(SampleClass1 obj, IDictionary<string, object> extraElements) {}
         }
     }
 }

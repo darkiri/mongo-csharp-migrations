@@ -94,7 +94,10 @@ namespace MongoDB.Migrations
 
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)
         {
-            foreach (var migration in _migrations.Where(m => m.To > objectVersion))
+            var filteredMigrations = FilterMigrations(objectVersion);
+            EnsureNoDuplicates(obj, filteredMigrations);
+
+            foreach (var migration in filteredMigrations)
             {
                 try
                 {
@@ -105,6 +108,18 @@ namespace MongoDB.Migrations
                     throw new MigrationException(obj.GetType(), migration.To, e);
                 }
             }
+        }
+
+        private IMigration[] FilterMigrations(Version fromVersion)
+        {
+            var currentVersion = _versionDetectionStrategy.GetCurrentVersion();
+            return _migrations.Where(m => m.To > fromVersion && m.To <= currentVersion).ToArray();
+        }
+
+        private static void EnsureNoDuplicates(object obj, IEnumerable<IMigration> filteredMigrations)
+        {
+            var duplicate = filteredMigrations.GroupBy(m => m.To).FirstOrDefault(g => g.Count() > 1);
+            if (duplicate != null) throw new MigrationException(obj.GetType(), duplicate.First().To);
         }
 
         private static void InvokeUpgrade(IMigration migration, object obj, IDictionary<string, object> extraElements)
