@@ -94,10 +94,16 @@ namespace MongoDB.Migrations
 
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)
         {
-            // TODO error handling
             foreach (var migration in _migrations.Where(m => m.To > objectVersion))
             {
-                InvokeUpgrade(migration, obj, extraElements);
+                try
+                {
+                    InvokeUpgrade(migration, obj, extraElements);
+                }
+                catch (Exception e)
+                {
+                    throw new MigrationException(obj.GetType(), migration.To, e);
+                }
             }
         }
 

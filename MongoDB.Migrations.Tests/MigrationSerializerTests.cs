@@ -47,6 +47,24 @@ namespace MongoDB.Migrations.Tests
             Assert.That(obj.Bla, Is.EqualTo(-1));
         }
 
+        [Test]
+        public void ExceptionsInUpgradesShouldBeHandled() 
+        {
+            try
+            {
+                Deserialize<SampleClass>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.2.1.0");
+                Assert.Fail("Expected " + typeof(MigrationException));
+            }
+            catch (MigrationException e)
+            {
+                Assert.That(e.AbortedVersion, Is.EqualTo(new Version(1, 1, 2)));
+                Assert.That(e.MigratedType, Is.EqualTo(typeof (SampleClass)));
+            }
+            catch (Exception another) {
+                Assert.Fail("Expected " + typeof(MigrationException) + " but thrown " + another.GetType());
+            }
+        }
+
         private static string Serialize<T>(T obj, string version)
         {
             var serializer = CreateSerializer<T>(version);
@@ -108,7 +126,10 @@ namespace MongoDB.Migrations.Tests
                 get { return new Version(1, 3, 1); }
             }
 
-            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) {}
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements)
+            {
+                obj.Bla = -2;
+            }
         }
 
         public class UpgradeTo_1_1_2 : IMigration<SampleClass>
@@ -118,7 +139,10 @@ namespace MongoDB.Migrations.Tests
                 get { return new Version(1, 1, 2); }
             }
 
-            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) {}
+            public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements) 
+            {
+                throw new Exception();
+            }
         }
 
         public class UpgradeTo_1_1_1 : IMigration<SampleClass>, IMigration<WithSingleUpgrade>

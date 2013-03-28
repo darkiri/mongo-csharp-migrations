@@ -50,6 +50,7 @@
     <Compile Include="IVersionSerializer.cs" />
     <Compile Include="LightweightVersionSerializer.cs" />
     <Compile Include="MigrationAttribute.cs" />
+    <Compile Include="MigrationException.cs" />
     <Compile Include="MigrationSerializationProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AssemblyVersionStrategy.cs" />
