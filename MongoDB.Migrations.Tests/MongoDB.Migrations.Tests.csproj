@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="LightwightVersionSerializerTests.cs" />
+    <Compile Include="MigrationSerializerTestBase.cs" />
     <Compile Include="MigrationSerializerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializationProviderTests.cs" />
