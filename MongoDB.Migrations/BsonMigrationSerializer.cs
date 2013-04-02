@@ -83,13 +83,18 @@ namespace MongoDB.Migrations
 
         protected override void OnDeserialized(object obj)
         {
-            var extraElements = (IDictionary<string, object>)_classMap.ExtraElementsMemberMap.Getter(obj);
+            var extraElements = (IDictionary<string, object>) _classMap.ExtraElementsMemberMap.Getter(obj);
             object objectVersion;
-            if (null != extraElements && extraElements.TryGetValue(VERSION_ELEMENT_NAME, out objectVersion))
+            if (null != extraElements && extraElements.ContainsKey(VERSION_ELEMENT_NAME))
             {
+                objectVersion = extraElements[VERSION_ELEMENT_NAME];
                 extraElements.Remove(VERSION_ELEMENT_NAME);
-                RunUpgrades((Version)objectVersion, obj, extraElements);
             }
+            else
+            {
+                objectVersion = new Version(0, 0);
+            }
+            RunUpgrades((Version) objectVersion, obj, extraElements);
         }
 
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)

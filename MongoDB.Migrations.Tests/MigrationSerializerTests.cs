@@ -41,6 +41,13 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
+        public void ForDocumentsWithoutVersionShouldBeAppliedAllUpgrades()
+        {
+            var obj = Deserialize<WithSingleUpgrade>("{ \"Bla\" : 1 }", "1.1.1");
+            Assert.That(obj.Bla, Is.EqualTo(-1));
+        }
+
+        [Test]
         public void UpgradesForNewVersionsShouldBeApplied()
         {
             var obj = Deserialize<WithSingleUpgrade>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.1");
