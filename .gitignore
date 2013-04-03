@@ -9,4 +9,4 @@ obj
 TestResults
 _ReSharper.*
 *.ncrunch*
-packages
+packages/*/
