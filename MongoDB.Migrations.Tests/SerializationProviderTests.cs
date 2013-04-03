@@ -24,14 +24,14 @@ namespace MongoDB.Migrations.Tests
         [Test]
         public void EnumsAreNotMigratable()
         {
-            
             Assert.IsNull(GetSerializer(typeof (GCCollectionMode)));
         }
 
         [Test]
-        public void TypesWithoutExtraElementsAreNotMigratable()
+        public void BsonSpecificTypedShouldNotBeMigratable()
         {
-            Assert.IsNull(GetSerializer(typeof (NotMigratableType)));
+            Assert.IsNull(GetSerializer(typeof (ObjectId)));
+            Assert.IsNull(GetSerializer(typeof(BsonDateTime)));
         }
 
         [Test]
@@ -47,12 +47,18 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void TypesWithExtraMethodsAreMigratable()
+        public void TypesShouldBeMigratable()
+        {
+            Assert.That(GetSerializer(typeof(MigratableType)), Is.InstanceOf<BsonMigrationSerializer>());
+        }
+
+        [Test]
+        public void TypesWithExtraElementsAreMigratable()
         {
             Assert.That(GetSerializer(typeof (TypeWithExtraElements)), Is.InstanceOf<BsonMigrationSerializer>());
         }
 
-        private class NotMigratableType {}
+        private class MigratableType { }
 
         private class TypeWithExtraElements
         {

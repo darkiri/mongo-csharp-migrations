@@ -22,13 +22,13 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void NotMigratableClassShouldNotSerializeVersion()
+        public void ClassWithoutMigrationsShouldNotSerializeVersion()
         {
-            var json = Serialize(new NotMigratableClass(), "1.1.0.1");
+            var json = Serialize(new NotYetMigratableClass(), "1.1.0.1");
             Assert.That(json, Is.EqualTo("{ \"Bla\" : 0 }"));
         }
 
-        public class NotMigratableClass
+        public class NotYetMigratableClass
         {
             public int Bla;
         }
@@ -68,6 +68,19 @@ namespace MongoDB.Migrations.Tests
             public Dictionary<string, object> ExtraElements;
         }
 
+        [Test]
+        public void UpgradesInClassWithoutExtraElementsShouldBeApplied()
+        {
+            var obj = Deserialize<WithSingleUpgradeWithoutExtraElements>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.1");
+            Assert.That(obj.Bla, Is.EqualTo(-1));
+        }
+
+        [Migration(typeof (MigrationTo_1_1_1_SettingBlaToMinus1))]
+        public class WithSingleUpgradeWithoutExtraElements
+        {
+            public int Bla;
+        }
+
         [Test, ExpectedException(typeof (MigrationException))]
         public void SeveralMigrationsForSameVersionShouldAbortThePipeline()
         {
@@ -76,8 +89,8 @@ namespace MongoDB.Migrations.Tests
 
         [Migration(typeof (MigrationTo_2_1_1))]
         [Migration(typeof (AnotherMigrationTo_2_1_1))]
-        public class SampleClass1
-        {
+        public class SampleClass1 
+        { 
             public Dictionary<string, object> ExtraElements;
         }
 
@@ -137,7 +150,6 @@ namespace MongoDB.Migrations.Tests
             public Dictionary<string, object> ExtraElements;
         }
 
-
         public class MigrationTo_1_3_1_WithException : IMigration<SampleClass>
         {
             public Version To
@@ -164,7 +176,7 @@ namespace MongoDB.Migrations.Tests
             }
         }
 
-        public class MigrationTo_1_1_1_SettingBlaToMinus1 : IMigration<SampleClass>, IMigration<WithSingleUpgrade>
+        public class MigrationTo_1_1_1_SettingBlaToMinus1 : IMigration<SampleClass>, IMigration<WithSingleUpgrade>, IMigration<WithSingleUpgradeWithoutExtraElements>
         {
             public Version To
             {
@@ -177,6 +189,11 @@ namespace MongoDB.Migrations.Tests
             }
 
             public void Upgrade(SampleClass obj, IDictionary<string, object> extraElements)
+            {
+                obj.Bla = -1;
+            }
+
+            public void Upgrade(WithSingleUpgradeWithoutExtraElements obj, IDictionary<string, object> extraElements)
             {
                 obj.Bla = -1;
             }

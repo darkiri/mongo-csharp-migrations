@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 
 namespace MongoDB.Migrations
 {
@@ -64,7 +65,7 @@ namespace MongoDB.Migrations
 
         private static IDictionary<string, object> EnsureExtraElements(object obj, BsonMemberMap extraElementsMemberMap)
         {
-            // shameless ripped from the base class (make this method protected non-static and pull up?)
+            // TODO: make this method protected non-static and pull up?
             var extraElements = (IDictionary<string, object>) extraElementsMemberMap.Getter(obj);
             if (extraElements == null)
             {
@@ -81,9 +82,26 @@ namespace MongoDB.Migrations
             return extraElements;
         }
 
-        protected override void OnDeserialized(object obj)
+        protected override void OnMemberNotFound(BsonReader bsonReader, object obj, string elementName, Dictionary<string, object> notFoundElements)
         {
-            var extraElements = (IDictionary<string, object>) _classMap.ExtraElementsMemberMap.Getter(obj);
+            if (elementName == VERSION_ELEMENT_NAME)
+            {
+                notFoundElements[VERSION_ELEMENT_NAME] = _versionSerializer.Deserialize(bsonReader, typeof(Version), null);
+            }
+            else
+            {
+                var bsonValue = (BsonValue) BsonValueSerializer.Instance.Deserialize(bsonReader, typeof (BsonValue), null);
+                notFoundElements[elementName] = BsonTypeMapper.MapToDotNetValue(bsonValue);
+            }
+        }
+
+
+        protected override void OnDeserialized(object obj, IDictionary<string, object> notFoundElements)
+        {
+            var extraElements = _classMap.ExtraElementsMemberMap == null
+                ? notFoundElements
+                : (IDictionary<string, object>) _classMap.ExtraElementsMemberMap.Getter(obj);
+
             object objectVersion;
             if (null != extraElements && extraElements.ContainsKey(VERSION_ELEMENT_NAME))
             {

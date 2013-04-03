@@ -8,16 +8,15 @@ namespace MongoDB.Migrations
     {
         public IBsonSerializer GetSerializer(Type type)
         {
-            if (type.IsPrimitive ||
-                typeof (Array).IsAssignableFrom(type) ||
-                typeof (Enum).IsAssignableFrom(type))
+            // TODO: how to filter what can be migrated?
+            if (type.FullName.StartsWith("System.") || type.FullName.StartsWith("MongoDB.Bson."))
             {
                 return null;
             }
             else
             {
                 var classMap = BsonClassMap.LookupClassMap(type);
-                if (classMap.ExtraElementsMemberMap == null || 
+                if (classMap.ExtraElementsMemberMap != null && 
                     classMap.ExtraElementsMemberMap.MemberType == typeof(BsonDocument))
                 {
                     // the expensive ClassMap was not for nothing created
