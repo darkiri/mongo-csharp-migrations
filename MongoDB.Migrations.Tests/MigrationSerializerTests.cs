@@ -18,14 +18,14 @@ namespace MongoDB.Migrations.Tests
         public void ShouldSerializeCurrentVersion()
         {
             var json = Serialize(new SampleClass(), "1.1.0.1");
-            Assert.That(json, Is.EqualTo("{ \"Bla\" : 0, \"_v\" : \"1.1.0.1\" }"));
+            Assert.That(json, Is.StringMatching("\"_v\" : \"1.1.0.1\""));
         }
 
         [Test]
         public void ClassWithoutMigrationsShouldNotSerializeVersion()
         {
             var json = Serialize(new NotYetMigratableClass(), "1.1.0.1");
-            Assert.That(json, Is.EqualTo("{ \"Bla\" : 0 }"));
+            Assert.That(json, Is.Not.StringMatching("\"_v\" : \"1.1.0.1\""));
         }
 
         public class NotYetMigratableClass
@@ -48,7 +48,7 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void UpgradesForNewVersionsShouldBeApplied()
+        public void UpgradesForNewVersionShouldBeApplied()
         {
             var obj = Deserialize<WithSingleUpgrade>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.1");
             Assert.That(obj.Bla, Is.EqualTo(-1));
@@ -119,6 +119,13 @@ namespace MongoDB.Migrations.Tests
         {
             var obj = Deserialize<SampleClass>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.1");
             Assert.That(obj.Bla, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void SeverlUpgradesShouldBeApplied()
+        {
+            var obj = Deserialize<SampleClass>("{ \"Bla\" : 1, \"_v\" : \"1.1.0.0\" }", "1.1.2");
+            Assert.That(obj.Bla, Is.EqualTo(-2));
         }
 
         [Test]

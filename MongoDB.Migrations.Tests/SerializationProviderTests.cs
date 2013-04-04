@@ -16,6 +16,12 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
+        public void PrimitiveTypesAreNotMigratable()
+        {
+            Assert.IsNull(GetSerializer(typeof (int)));
+        }
+
+        [Test]
         public void ArraysAreNotMigratable()
         {
             Assert.IsNull(GetSerializer(typeof (object[])));
@@ -41,13 +47,7 @@ namespace MongoDB.Migrations.Tests
         }
 
         [Test]
-        public void PrimitiveTypesAreNotMigratable()
-        {
-            Assert.IsNull(GetSerializer(typeof (int)));
-        }
-
-        [Test]
-        public void TypesShouldBeMigratable()
+        public void OrdinalTypesShouldBeMigratable()
         {
             Assert.That(GetSerializer(typeof(MigratableType)), Is.InstanceOf<BsonMigrationSerializer>());
         }

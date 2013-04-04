@@ -50,10 +50,7 @@ namespace MongoDB.Migrations.Tests
             {
                 using (var bsonWriter = BsonWriter.Create(stringWriter))
                 {
-                    new LightweightVersionSerializer().Serialize(bsonWriter,
-                                                                 typeof (Version),
-                                                                 new Version(65536, 0),
-                                                                 null);
+                    new LightweightVersionSerializer().Serialize(bsonWriter, typeof (Version), new Version(65536, 0), null);
                 }
             }
         }

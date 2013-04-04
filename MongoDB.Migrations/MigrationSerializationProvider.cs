@@ -13,22 +13,20 @@ namespace MongoDB.Migrations
             {
                 return null;
             }
+
+            var classMap = BsonClassMap.LookupClassMap(type);
+            if (classMap.ExtraElementsMemberMap != null && 
+                classMap.ExtraElementsMemberMap.MemberType == typeof(BsonDocument))
+            {
+                // the expensive ClassMap was not for nothing created
+                // it will be shortly reused by the normal ClassMap Serializer
+                return null;
+            }
             else
             {
-                var classMap = BsonClassMap.LookupClassMap(type);
-                if (classMap.ExtraElementsMemberMap != null && 
-                    classMap.ExtraElementsMemberMap.MemberType == typeof(BsonDocument))
-                {
-                    // the expensive ClassMap was not for nothing created
-                    // it will be shortly reused by the normal ClassMap Serializer
-                    return null;
-                }
-                else
-                {
-                    var versionDetectionStrategy = new AssemblyVersionStrategy(type.Assembly);
-                    var versionSerializer = new LightweightVersionSerializer();
-                    return new BsonMigrationSerializer(versionSerializer, versionDetectionStrategy, classMap);
-                }
+                var versionDetectionStrategy = new AssemblyVersionStrategy(type.Assembly);
+                var versionSerializer = new LightweightVersionSerializer();
+                return new BsonMigrationSerializer(versionSerializer, versionDetectionStrategy, classMap);
             }
         }
     }

@@ -8,7 +8,14 @@ using MongoDB.Bson.Serialization.Serializers;
 
 namespace MongoDB.Migrations
 {
-    public class LightweightVersionSerializer : BsonBaseSerializer, IVersionSerializer
+    /// <summary>
+    /// Serialize Version as BsonLong: 
+    /// 0000 MMMM mmmm BBBB
+    /// where MMMM - Major version, mmmm - minor version, BBBB - build number
+    /// Revision is ignored
+    /// Maximum value per version compnent is 65565
+    /// </summary>
+    public class LightweightVersionSerializer : BsonBaseSerializer
     {
         public LightweightVersionSerializer() : base(new RepresentationSerializationOptions(BsonType.Int64)) {}
 
@@ -75,7 +82,7 @@ namespace MongoDB.Migrations
                 version.Build > VERSION_COMPONENT_MAX)
             {
                 throw new BsonSerializationException(
-                    String.Format("Version '{0}' cannot be serialized. All version components must be smaller or equal tos {1}", version, VERSION_COMPONENT_MAX));
+                    String.Format("Version '{0}' cannot be serialized. All version components must be smaller or equal to {1}", version, VERSION_COMPONENT_MAX));
             }
         }
 

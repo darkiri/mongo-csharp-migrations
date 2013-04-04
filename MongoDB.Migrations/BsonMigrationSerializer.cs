@@ -37,7 +37,11 @@ namespace MongoDB.Migrations
             {
                 throw new ArgumentException("One of migration types is not a subclass of " + migrationInterface.Name);
             }
-            return migrationTypes.Select(Activator.CreateInstance).Cast<IMigration>().OrderBy(m => m.To).ToArray();
+            return migrationTypes
+                .Select(Activator.CreateInstance)
+                .Cast<IMigration>()
+                .OrderBy(m => m.To)
+                .ToArray();
         }
 
         protected override void OnSerialized(BsonWriter bsonWriter, object value, IBsonSerializationOptions options)
@@ -47,6 +51,19 @@ namespace MongoDB.Migrations
                 bsonWriter.WriteName(VERSION_ELEMENT_NAME);
                 var currentVersion = _versionDetectionStrategy.GetCurrentVersion();
                 _versionSerializer.Serialize(bsonWriter, typeof(Version), currentVersion, null);
+            }
+        }
+
+        protected override void OnMemberNotFound(BsonReader bsonReader, object obj, string elementName, Dictionary<string, object> notFoundElements)
+        {
+            if (elementName == VERSION_ELEMENT_NAME)
+            {
+                notFoundElements[VERSION_ELEMENT_NAME] = _versionSerializer.Deserialize(bsonReader, typeof(Version), null);
+            }
+            else
+            {
+                var bsonValue = (BsonValue) BsonValueSerializer.Instance.Deserialize(bsonReader, typeof (BsonValue), null);
+                notFoundElements[elementName] = BsonTypeMapper.MapToDotNetValue(bsonValue);
             }
         }
 
@@ -82,19 +99,6 @@ namespace MongoDB.Migrations
             return extraElements;
         }
 
-        protected override void OnMemberNotFound(BsonReader bsonReader, object obj, string elementName, Dictionary<string, object> notFoundElements)
-        {
-            if (elementName == VERSION_ELEMENT_NAME)
-            {
-                notFoundElements[VERSION_ELEMENT_NAME] = _versionSerializer.Deserialize(bsonReader, typeof(Version), null);
-            }
-            else
-            {
-                var bsonValue = (BsonValue) BsonValueSerializer.Instance.Deserialize(bsonReader, typeof (BsonValue), null);
-                notFoundElements[elementName] = BsonTypeMapper.MapToDotNetValue(bsonValue);
-            }
-        }
-
 
         protected override void OnDeserialized(object obj, IDictionary<string, object> notFoundElements)
         {
@@ -112,6 +116,7 @@ namespace MongoDB.Migrations
             {
                 objectVersion = new Version(0, 0);
             }
+
             RunUpgrades((Version) objectVersion, obj, extraElements);
         }
 
@@ -136,13 +141,18 @@ namespace MongoDB.Migrations
         private IMigration[] FilterMigrations(Version fromVersion)
         {
             var currentVersion = _versionDetectionStrategy.GetCurrentVersion();
-            return _migrations.Where(m => m.To > fromVersion && m.To <= currentVersion).ToArray();
+            return _migrations
+                .Where(m => m.To > fromVersion && m.To <= currentVersion)
+                .ToArray();
         }
 
         private static void EnsureNoDuplicates(object obj, IEnumerable<IMigration> filteredMigrations)
         {
-            var duplicate = filteredMigrations.GroupBy(m => m.To).FirstOrDefault(g => g.Count() > 1);
-            if (duplicate != null) throw new MigrationException(obj.GetType(), duplicate.First().To);
+            var duplicate = filteredMigrations
+                .GroupBy(m => m.To)
+                .FirstOrDefault(g => g.Count() > 1);
+            if (duplicate != null) 
+                throw new MigrationException(obj.GetType(), duplicate.First().To);
         }
 
         private static void InvokeUpgrade(IMigration migration, object obj, IDictionary<string, object> extraElements)

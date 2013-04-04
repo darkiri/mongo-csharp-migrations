@@ -47,7 +47,6 @@
     <Compile Include="BsonMigrationSerializer.cs" />
     <Compile Include="IMigration.cs" />
     <Compile Include="IVersionDetectionStrategy.cs" />
-    <Compile Include="IVersionSerializer.cs" />
     <Compile Include="LightweightVersionSerializer.cs" />
     <Compile Include="MigrationAttribute.cs" />
     <Compile Include="MigrationException.cs" />

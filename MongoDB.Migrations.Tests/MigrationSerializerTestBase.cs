@@ -14,10 +14,7 @@ namespace MongoDB.Migrations.Tests
             {
                 using (var bsonWriter = BsonWriter.Create(stringWriter))
                 {
-                    serializer.Serialize(bsonWriter,
-                                         obj.GetType(),
-                                         obj,
-                                         DocumentSerializationOptions.SerializeIdFirstInstance);
+                    serializer.Serialize(bsonWriter, obj.GetType(), obj, DocumentSerializationOptions.SerializeIdFirstInstance);
                 }
                 return stringWriter.ToString();
             }

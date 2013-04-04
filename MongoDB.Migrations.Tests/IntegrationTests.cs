@@ -12,9 +12,9 @@ namespace MongoDB.Migrations.Tests
     [TestFixture]
     public class IntegrationTests
     {
-        private MongoCollection<Customer> _customersCollection;
         private const string TEST_DATABASE_NAME = "mongodb_migrations_tests";
         private const string CUSTOMERS_COLLECTION = "customers";
+        private MongoCollection<Customer> _customersCollection;
 
         public class CustomerOld
         {
@@ -29,7 +29,6 @@ namespace MongoDB.Migrations.Tests
             public string Title { get; set; }
             public string FirstName { get; set; }
             public string LastName { get; set; }
-            public IDictionary<string, object> ExtraElements { get; set; }
         }
 
         public class MigrationTo_0_5 : IMigration<Customer>
@@ -62,15 +61,6 @@ namespace MongoDB.Migrations.Tests
             }
         }
 
-        private MongoDatabase SetUpMongoConnection()
-        {
-            var client = new MongoClient("mongodb://localhost/?w=1");
-            var server = client.GetServer();
-            var db = server.GetDatabase(TEST_DATABASE_NAME);
-            db.Drop();
-            return db;
-        }
-
         [SetUp]
         public void SetUp()
         {
@@ -78,6 +68,15 @@ namespace MongoDB.Migrations.Tests
 
             var db = SetUpMongoConnection();
             _customersCollection = db.GetCollection<Customer>(CUSTOMERS_COLLECTION);
+        }
+
+        private MongoDatabase SetUpMongoConnection()
+        {
+            var client = new MongoClient("mongodb://localhost/?w=1");
+            var server = client.GetServer();
+            var db = server.GetDatabase(TEST_DATABASE_NAME);
+            db.Drop();
+            return db;
         }
 
         [Test]
@@ -93,6 +92,5 @@ namespace MongoDB.Migrations.Tests
             Assert.That(customer.FirstName, Is.EqualTo("Chanandler"));
             Assert.That(customer.LastName, Is.EqualTo("Bong"));
         }
-
     }
 }
