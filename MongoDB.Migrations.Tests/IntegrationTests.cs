@@ -10,20 +10,19 @@ using NUnit.Framework;
 namespace MongoDB.Migrations.Tests
 {
     [TestFixture]
-    public class IntegrationTests
+    public class IntegrationTests : DatabaseTestsBase
     {
-        private const string TEST_DATABASE_NAME = "mongodb_migrations_tests";
         private const string CUSTOMERS_COLLECTION = "customers";
         private MongoCollection<Customer> _customersCollection;
 
-        public class CustomerOld
+        private class CustomerOld
         {
             public string Name { get; set; }
         }
 
         [Migration(typeof (MigrationTo_0_5))]
         [Migration(typeof (MigrationTo_1_0))]
-        public class Customer
+        private class Customer
         {
             public ObjectId Id { get; set; }
             public string Title { get; set; }
@@ -31,7 +30,7 @@ namespace MongoDB.Migrations.Tests
             public string LastName { get; set; }
         }
 
-        public class MigrationTo_0_5 : IMigration<Customer>
+        private class MigrationTo_0_5 : IMigration<Customer>
         {
             public Version To
             {
@@ -47,7 +46,7 @@ namespace MongoDB.Migrations.Tests
             }
         }
 
-        public class MigrationTo_1_0 : IMigration<Customer>
+        private class MigrationTo_1_0 : IMigration<Customer>
         {
             public Version To
             {
@@ -66,17 +65,8 @@ namespace MongoDB.Migrations.Tests
         {
             BsonSerializer.RegisterSerializationProvider(new MigrationSerializationProvider());
 
-            var db = SetUpMongoConnection();
-            _customersCollection = db.GetCollection<Customer>(CUSTOMERS_COLLECTION);
-        }
-
-        private MongoDatabase SetUpMongoConnection()
-        {
-            var client = new MongoClient("mongodb://localhost/?w=1");
-            var server = client.GetServer();
-            var db = server.GetDatabase(TEST_DATABASE_NAME);
-            db.Drop();
-            return db;
+            SetUpDatabase();
+            _customersCollection = GetDatabaseCollection<Customer>(CUSTOMERS_COLLECTION);
         }
 
         [Test]
