@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
@@ -15,7 +14,7 @@ namespace MongoDB.Migrations
         private const string VERSION_ELEMENT_NAME = "_v";
         private readonly IVersionDetectionStrategy _versionDetectionStrategy;
         private readonly IMigration[] _migrations;
-        private readonly Dictionary<Version, IMigration> _filteredMigrations;
+        private readonly Dictionary<Version, Action<object, IDictionary<string, object>>> _versionToMigrationCall;
         private readonly IBsonSerializer _versionSerializer;
         private static readonly Version _versionZero = new Version(0, 0);
 
@@ -24,7 +23,7 @@ namespace MongoDB.Migrations
             _versionSerializer = versionSerializer;
             _versionDetectionStrategy = versionDetectionStrategy;
             _migrations = ExtractMigrations(classMap.ClassType);
-            _filteredMigrations = FilterMigrations();
+            _versionToMigrationCall = FilterMigrations(classMap.ClassType);
         }
 
         private IMigration[] ExtractMigrations(Type classType)
@@ -62,11 +61,29 @@ namespace MongoDB.Migrations
         }
 
 
-        private Dictionary<Version, IMigration> FilterMigrations()
+        private Dictionary<Version, Action<object, IDictionary<string, object>>> FilterMigrations(Type classType)
         {
             return _migrations
                 .Where(m => m.To <= _versionDetectionStrategy.GetCurrentVersion())
-                .ToDictionary(m => m.To);
+                .ToDictionary(m => m.To, m => BuildLambda(m, classType));
+        }
+
+        private static Action<object, IDictionary<string, object>> BuildLambda(IMigration migration, Type objectType)
+        {
+            var migrationMethod = migration
+                .GetType()
+                .GetMethod("Upgrade", new[] { objectType, typeof(IDictionary<string, object>) });
+
+            var objParameter = Expression.Parameter(typeof(object), "obj");
+            var extraElementsParameter = Expression.Parameter(typeof(IDictionary<string, object>), "extraElements");
+            var typedParameter = Expression.Convert(objParameter, objectType);
+
+            var migrationCall = Expression.Call(
+                Expression.Constant(migration),
+                migrationMethod,
+                new Expression[] { typedParameter, extraElementsParameter });
+
+            return Expression.Lambda<Action<object, IDictionary<string, object>>>(migrationCall, objParameter, extraElementsParameter).Compile();
         }
 
         protected override void OnSerialized(BsonWriter bsonWriter, object value, IBsonSerializationOptions options)
@@ -147,13 +164,14 @@ namespace MongoDB.Migrations
 
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)
         {
-            foreach (var migratableVesion  in _filteredMigrations.Keys)
+            foreach (var migratableVesion in _versionToMigrationCall.Keys)
             {
                 try
                 {
                     if (migratableVesion > objectVersion)
                     {
-                        InvokeUpgrade(_filteredMigrations[migratableVesion], obj, extraElements);
+                        var upgradeCall = _versionToMigrationCall[migratableVesion];
+                        upgradeCall(obj, extraElements);
                     }
                 }
                 catch (Exception e)
@@ -163,12 +181,5 @@ namespace MongoDB.Migrations
             }
         }
 
-        private static void InvokeUpgrade(IMigration migration, object obj, IDictionary<string, object> extraElements)
-        {
-            var upgrade = migration
-                .GetType()
-                .GetMethod("Upgrade", new[] { obj.GetType(), typeof(IDictionary<string, object>) });
-            upgrade.Invoke(migration, new[] { obj, extraElements });
-        }
     }
 }
