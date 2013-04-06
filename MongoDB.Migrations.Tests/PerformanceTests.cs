@@ -18,12 +18,14 @@ namespace MongoDB.Migrations.Tests
         {
             public ObjectId Id;
             public string FullName;
+            public string Title;
         }
 
         private class PersonWithoutMigration2
         {
             public ObjectId Id;
             public string FullName;
+            public string Title;
         }
 
         [Migration(typeof (EmptyMigration))]
@@ -31,6 +33,7 @@ namespace MongoDB.Migrations.Tests
         {
             public ObjectId Id;
             public string FullName;
+            public string Title;
         }
 
         private class EmptyMigration : IMigration<PersonWithMigration>
@@ -55,7 +58,8 @@ namespace MongoDB.Migrations.Tests
             {
                 var person = new PersonWithoutMigration1
                 {
-                    FullName = generator.GetName(6) + " " + generator.GetName(10)
+                    FullName = generator.GetName(6) + " " + generator.GetName(10),
+                    Title = generator.GetName(5),
                 };
                 persons.Insert(person);
                 if (i % 10000 == 0)

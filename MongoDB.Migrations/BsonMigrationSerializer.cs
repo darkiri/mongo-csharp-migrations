@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
@@ -10,19 +12,22 @@ namespace MongoDB.Migrations
 {
     public class BsonMigrationSerializer : BsonClassMapSerializer
     {
-        private readonly IVersionDetectionStrategy _versionDetectionStrategy;
-        private readonly IEnumerable<IMigration> _migrations;
         private const string VERSION_ELEMENT_NAME = "_v";
+        private readonly IVersionDetectionStrategy _versionDetectionStrategy;
+        private readonly IMigration[] _migrations;
+        private readonly Dictionary<Version, IMigration> _filteredMigrations;
         private readonly IBsonSerializer _versionSerializer;
+        private static readonly Version _versionZero = new Version(0, 0);
 
         public BsonMigrationSerializer(IBsonSerializer versionSerializer, IVersionDetectionStrategy versionDetectionStrategy, BsonClassMap classMap) : base(classMap)
         {
             _versionSerializer = versionSerializer;
             _versionDetectionStrategy = versionDetectionStrategy;
             _migrations = ExtractMigrations(classMap.ClassType);
+            _filteredMigrations = FilterMigrations();
         }
 
-        private IEnumerable<IMigration> ExtractMigrations(Type classType)
+        private IMigration[] ExtractMigrations(Type classType)
         {
             var migrationTypes = classType
                 .GetCustomAttributes(typeof (MigrationAttribute), false)
@@ -37,11 +42,31 @@ namespace MongoDB.Migrations
             {
                 throw new ArgumentException("One of migration types is not a subclass of " + migrationInterface.Name);
             }
-            return migrationTypes
+            var migrations =  migrationTypes
                 .Select(Activator.CreateInstance)
                 .Cast<IMigration>()
                 .OrderBy(m => m.To)
                 .ToArray();
+
+            EnsureNoDuplicates(classType, migrations);
+            return migrations;
+        }
+
+        private static void EnsureNoDuplicates(Type type, IEnumerable<IMigration> filteredMigrations)
+        {
+            var duplicate = filteredMigrations
+                .GroupBy(m => m.To)
+                .FirstOrDefault(g => g.Count() > 1);
+            if (duplicate != null) 
+                throw new MigrationException(type, duplicate.First().To);
+        }
+
+
+        private Dictionary<Version, IMigration> FilterMigrations()
+        {
+            return _migrations
+                .Where(m => m.To <= _versionDetectionStrategy.GetCurrentVersion())
+                .ToDictionary(m => m.To);
         }
 
         protected override void OnSerialized(BsonWriter bsonWriter, object value, IBsonSerializationOptions options)
@@ -114,7 +139,7 @@ namespace MongoDB.Migrations
             }
             else
             {
-                objectVersion = new Version(0, 0);
+                objectVersion = _versionZero;
             }
 
             RunUpgrades((Version) objectVersion, obj, extraElements);
@@ -122,45 +147,28 @@ namespace MongoDB.Migrations
 
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)
         {
-            var filteredMigrations = FilterMigrations(objectVersion);
-            EnsureNoDuplicates(obj, filteredMigrations);
-
-            foreach (var migration in filteredMigrations)
+            foreach (var migratableVesion  in _filteredMigrations.Keys)
             {
                 try
                 {
-                    InvokeUpgrade(migration, obj, extraElements);
+                    if (migratableVesion > objectVersion)
+                    {
+                        InvokeUpgrade(_filteredMigrations[migratableVesion], obj, extraElements);
+                    }
                 }
                 catch (Exception e)
                 {
-                    throw new MigrationException(obj.GetType(), migration.To, e);
+                    throw new MigrationException(obj.GetType(), migratableVesion, e);
                 }
             }
-        }
-
-        private IMigration[] FilterMigrations(Version fromVersion)
-        {
-            var currentVersion = _versionDetectionStrategy.GetCurrentVersion();
-            return _migrations
-                .Where(m => m.To > fromVersion && m.To <= currentVersion)
-                .ToArray();
-        }
-
-        private static void EnsureNoDuplicates(object obj, IEnumerable<IMigration> filteredMigrations)
-        {
-            var duplicate = filteredMigrations
-                .GroupBy(m => m.To)
-                .FirstOrDefault(g => g.Count() > 1);
-            if (duplicate != null) 
-                throw new MigrationException(obj.GetType(), duplicate.First().To);
         }
 
         private static void InvokeUpgrade(IMigration migration, object obj, IDictionary<string, object> extraElements)
         {
             var upgrade = migration
                 .GetType()
-                .GetMethod("Upgrade", new[] {obj.GetType(), typeof (IDictionary<string, object>)});
-            upgrade.Invoke(migration, new[] {obj, extraElements});
+                .GetMethod("Upgrade", new[] { obj.GetType(), typeof(IDictionary<string, object>) });
+            upgrade.Invoke(migration, new[] { obj, extraElements });
         }
     }
 }

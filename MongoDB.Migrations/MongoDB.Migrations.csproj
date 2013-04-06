@@ -44,7 +44,9 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BsonMigrationSerializer.cs" />
+    <Compile Include="BsonMigrationSerializer.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="IMigration.cs" />
     <Compile Include="IVersionDetectionStrategy.cs" />
     <Compile Include="LightweightVersionSerializer.cs" />

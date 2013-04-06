@@ -5,15 +5,15 @@ namespace MongoDB.Migrations
 {
     public class AssemblyVersionStrategy : IVersionDetectionStrategy
     {
-        private readonly Assembly _assembly;
+        private readonly Version _assemblyVersion;
         public AssemblyVersionStrategy(Assembly assembly)
         {
-            _assembly = assembly;
+            _assemblyVersion = assembly.GetName().Version;
         }
 
         public Version GetCurrentVersion()
         {
-            return _assembly.GetName().Version;
+            return _assemblyVersion;
         }
     }
 }
