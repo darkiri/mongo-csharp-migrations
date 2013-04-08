@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
+using MongoDB.Driver.Wrappers;
 using NUnit.Framework;
 
 namespace MongoDB.Migrations.Tests
@@ -38,6 +40,23 @@ namespace MongoDB.Migrations.Tests
         {
             Assert.IsNull(GetSerializer(typeof (ObjectId)));
             Assert.IsNull(GetSerializer(typeof(BsonDateTime)));
+        }
+
+        [Test]
+        public void BsonDocumentIsNotMigratable() 
+        {
+            Assert.IsNull(GetSerializer(typeof (BsonDocument)));
+            Assert.IsNull(GetSerializer(typeof (RawBsonDocument)));
+            Assert.IsNull(GetSerializer(typeof (QueryDocument)));
+            Assert.IsNull(GetSerializer(typeof (CommandDocument)));
+        }
+
+        [Test]
+        public void BsonSerializableIsNotMigratable() 
+        {
+            Assert.IsNull(GetSerializer(typeof (BsonDocumentWrapper)));
+            Assert.IsNull(GetSerializer(typeof (FieldsWrapper)));
+            Assert.IsNull(GetSerializer(typeof (UpdateWrapper)));
         }
 
         [Test]

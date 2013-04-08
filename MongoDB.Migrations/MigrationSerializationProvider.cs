@@ -9,7 +9,9 @@ namespace MongoDB.Migrations
         public IBsonSerializer GetSerializer(Type type)
         {
             // TODO: how to filter what can be migrated?
-            if (type.FullName.StartsWith("System.") || type.FullName.StartsWith("MongoDB.Bson."))
+            if (type.FullName.StartsWith("System.") || type.FullName.StartsWith("MongoDB.Bson.") ||
+                typeof(BsonDocument).IsAssignableFrom(type) ||
+                typeof(IBsonSerializable).IsAssignableFrom(type))
             {
                 return null;
             }
