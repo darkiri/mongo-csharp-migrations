@@ -12,21 +12,19 @@ namespace MongoDB.Migrations
     public class BsonMigrationSerializer : BsonClassMapSerializer
     {
         private const string VERSION_ELEMENT_NAME = "_v";
-        private readonly IVersionDetectionStrategy _versionDetectionStrategy;
-        private readonly IMigration[] _migrations;
-        private readonly Dictionary<Version, Action<object, IDictionary<string, object>>> _versionToMigrationCall;
-        private readonly IBsonSerializer _versionSerializer;
         private static readonly Version _versionZero = new Version(0, 0);
+        private readonly IVersionDetectionStrategy _versionDetectionStrategy;
+        private readonly Dictionary<Version, Action<object, IDictionary<string, object>>> _migrations;
+        private readonly IBsonSerializer _versionSerializer;
 
         public BsonMigrationSerializer(IBsonSerializer versionSerializer, IVersionDetectionStrategy versionDetectionStrategy, BsonClassMap classMap) : base(classMap)
         {
             _versionSerializer = versionSerializer;
             _versionDetectionStrategy = versionDetectionStrategy;
             _migrations = ExtractMigrations(classMap.ClassType);
-            _versionToMigrationCall = FilterMigrations(classMap.ClassType);
         }
 
-        private IMigration[] ExtractMigrations(Type classType)
+        private static Dictionary<Version, Action<object, IDictionary<string, object>>> ExtractMigrations(Type classType)
         {
             var migrationTypes = classType
                 .GetCustomAttributes(typeof (MigrationAttribute), false)
@@ -41,34 +39,27 @@ namespace MongoDB.Migrations
             {
                 throw new ArgumentException("One of migration types is not a subclass of " + migrationInterface.Name);
             }
-            var migrations =  migrationTypes
+
+            var migrations = migrationTypes
                 .Select(Activator.CreateInstance)
-                .Cast<IMigration>()
-                .OrderBy(m => m.To)
-                .ToArray();
+                .Select(m => new { To = ExtractVersion(m), Upgrade = BuildLambda(m, classType) })
+                .OrderBy(m => m.To);
 
-            EnsureNoDuplicates(classType, migrations);
-            return migrations;
-        }
-
-        private static void EnsureNoDuplicates(Type type, IEnumerable<IMigration> filteredMigrations)
-        {
-            var duplicate = filteredMigrations
+            var duplicate = migrations
                 .GroupBy(m => m.To)
                 .FirstOrDefault(g => g.Count() > 1);
             if (duplicate != null) 
-                throw new MigrationException(type, duplicate.First().To);
+                throw new MigrationException(classType, duplicate.First().To);
+
+            return migrations.ToDictionary(m => m.To, m => m.Upgrade);
         }
 
-
-        private Dictionary<Version, Action<object, IDictionary<string, object>>> FilterMigrations(Type classType)
+        private static Version ExtractVersion(object migration)
         {
-            return _migrations
-                .Where(m => m.To <= _versionDetectionStrategy.GetCurrentVersion())
-                .ToDictionary(m => m.To, m => BuildLambda(m, classType));
+            return (Version)migration.GetType().GetProperty("To").GetValue(migration);
         }
 
-        private static Action<object, IDictionary<string, object>> BuildLambda(IMigration migration, Type objectType)
+        private static Action<object, IDictionary<string, object>> BuildLambda(object migration, Type objectType)
         {
             var migrationMethod = migration
                 .GetType()
@@ -164,14 +155,14 @@ namespace MongoDB.Migrations
 
         private void RunUpgrades(Version objectVersion, object obj, IDictionary<string, object> extraElements)
         {
-            foreach (var migratableVesion in _versionToMigrationCall.Keys)
+            foreach (var migratableVesion in _migrations.Keys)
             {
                 try
                 {
-                    if (migratableVesion > objectVersion)
+                    if (objectVersion < migratableVesion && migratableVesion <= _versionDetectionStrategy.GetCurrentVersion())
                     {
-                        var upgradeCall = _versionToMigrationCall[migratableVesion];
-                        upgradeCall(obj, extraElements);
+                        var upgrade = _migrations[migratableVesion];
+                        upgrade(obj, extraElements);
                     }
                 }
                 catch (Exception e)
