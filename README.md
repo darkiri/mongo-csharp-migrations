@@ -11,6 +11,10 @@ Points to be demonstrated:
 > In order to make the migration process work, [a couple of extension points] (https://github.com/darkiri/mongo-csharp-driver/compare/master...migration) are needed on the official C# driver. It means that micro framework relies on a custom build made from the [forked repository] (https://github.com/darkiri/mongo-csharp-driver/tree/migration).
 
 ```C#
+// setup
+BsonSerializer.RegisterSerializationProvider(
+			new MigrationSerializationProvider());
+
 [Migration(typeof (MigrationTo_1_0))]
 private class Customer
 {
