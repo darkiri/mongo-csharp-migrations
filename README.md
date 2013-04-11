@@ -12,8 +12,7 @@ Points to be demonstrated:
 
 ```C#
 // setup
-BsonSerializer.RegisterSerializationProvider(
-			new MigrationSerializationProvider());
+BsonSerializer.RegisterSerializationProvider(new MigrationSerializationProvider());
 
 [Migration(typeof (MigrationTo_1_0))]
 private class Customer
@@ -30,8 +29,7 @@ private class MigrationTo_1_0 : IMigration<Customer>
         get { return new Version(1, 0); }
     }
 
-    public void Upgrade(Customer obj, 
-                        IDictionary<string, object> extraElements)
+    public void Upgrade(Customer obj, IDictionary<string, object> extraElements)
     {
         var fullName = (string) extraElements["Name"];
 
